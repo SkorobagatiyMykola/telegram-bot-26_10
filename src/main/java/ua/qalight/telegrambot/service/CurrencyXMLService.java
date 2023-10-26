@@ -2,15 +2,17 @@ package ua.qalight.telegrambot.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.vdurmont.emoji.EmojiParser;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
+import ua.qalight.telegrambot.enums.Emoji;
 import ua.qalight.telegrambot.model.CurrencyJSON;
+import ua.qalight.telegrambot.model.CurrencyXML;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -19,20 +21,21 @@ import java.util.List;
 
 @Service
 @PropertySource("application.properties")
-public class CurrencyJSONService implements CurrencyService {
+public class CurrencyXMLService implements CurrencyService {
 
     private static String URL;
 
-    private static List<CurrencyJSON> currencyJSONList = new ArrayList<>();
+    private static List<CurrencyXML> currencyXMLList = new ArrayList<>();
 
-    @Value("${json.url}")
+    @Value("${xml.url}")
     public void setURL(String url) {
-        CurrencyJSONService.URL = url;
+        CurrencyXMLService.URL = url;
     }
 
+    @Override
     @SneakyThrows
     public String getResponse(String currency) {
-        if (currencyJSONList.isEmpty()) {
+        if (currencyXMLList.isEmpty()) {
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(new URI(URL))
@@ -42,27 +45,29 @@ public class CurrencyJSONService implements CurrencyService {
             HttpResponse response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             String res = response.body().toString();
-            ObjectMapper mapper = new ObjectMapper(); // todo help us to convert JSON (!!!)
+            XmlMapper mapper = new XmlMapper(); // todo help us to convert XML (!!!)
 
-            TypeReference<List<CurrencyJSON>> listType = new TypeReference<List<CurrencyJSON>>() {
+            TypeReference<List<CurrencyXML>> listType = new TypeReference<List<CurrencyXML>>() {
             };
-            currencyJSONList = mapper.readValue(res, listType);
+            currencyXMLList = mapper.readValue(res, listType);
         }
 
-        CurrencyJSON curr = getCurrencyJSON(currency);
+        CurrencyXML curr = getCurrencyJSON(currency);
 
         String result = curr != null ?
-                curr.getCurrency() + " rate is " + curr.getRate() : "ERROR!!!";
+                curr.getCurrency() + " rate is " + curr.getRate() + Emoji.SMILE.getEmoji() + Emoji.SMILE.getEmoji() : "ERROR!!!";
+        String res = EmojiParser.parseToUnicode(result);
 
-        return result;
+        return res;
     }
 
-    private static CurrencyJSON getCurrencyJSON(String currency) {
-        CurrencyJSON currencyJSON = currencyJSONList.stream()
+    private static CurrencyXML getCurrencyJSON(String currency) {
+        CurrencyXML currencyXML = currencyXMLList.stream()
                 .filter(el -> el.getCurrency().equals(currency))
                 .findAny()
                 .orElse(null);
 
-        return currencyJSON;
+        return currencyXML;
     }
 }
+

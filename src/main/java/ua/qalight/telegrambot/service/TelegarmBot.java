@@ -40,7 +40,11 @@ public class TelegarmBot extends TelegramLongPollingBot {
                     break;
                 case "/json":
                     // Handle JSON
-                    handleRequest(chatId, "Select currency");
+                    handleRequest(chatId, "Select currency","JSON");
+                    break;
+                case "/xml":
+                    // Handle XML
+                    handleRequest(chatId, "Select XML (!!!) currency","XML");
                     break;
                 default:
                     sendMessage(chatId, "Command is unknown.");
@@ -50,21 +54,24 @@ public class TelegarmBot extends TelegramLongPollingBot {
             String callbackData = update.getCallbackQuery().getData();
             long chatId = update.getCallbackQuery().getMessage().getChatId();
 
-            CurrencyJSONService service = new CurrencyJSONService();
+            //CurrencyJSONService service = new CurrencyJSONService();
+            CurrencyService service = callbackData.endsWith("JSON")  ?
+                    new CurrencyJSONService() : new CurrencyXMLService();
+            String currency = callbackData.substring(0,3);
 
-            String message = service.getResponse(callbackData);
+            String message = service.getResponse(currency);
 
             sendMessage(chatId,message);
         }
 
     }
 
-    private void handleRequest(long chatId, String selectCurrency) {
+    private void handleRequest(long chatId, String selectCurrency,String format) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
         message.setText(selectCurrency);
 
-        InlineKeyboardMarkup markup = KeyboardRow.createKeyboardCurrency();
+        InlineKeyboardMarkup markup = KeyboardRow.createKeyboardCurrency(format);
         message.setReplyMarkup(markup);
 
         try {
